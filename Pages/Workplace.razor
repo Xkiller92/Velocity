@@ -1,0 +1,246 @@
+@page "/Workplace/{pName}/{pDesc?}"
+
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
+@inject HttpClient http
+@inject NavigationManager NavigationManager
+
+<h1 class="h3 mb-3 fw-normal">Current project: @pName</h1>
+<div class="card-group">
+  <div class="card"  ondragover="event.preventDefault();"  @ondrop='@(()=> OnCardDrop("todo"))' style="width: 18rem;">
+    <img src="Assets/todo.png" class="card-img-top" style="height: 10rem;">  
+    <div class="card-body">
+      <h5 class="card-title">todo</h5>
+      <ul class="list-group list-group-flush">
+        @if (todo.Count != 0)
+        {
+            @foreach (var item in todo)
+            {
+                @item
+            }
+        }
+      </ul>
+      <input type="button" @onclick='(()=> AddCard("bg-danger", todoInd, "todo"))' class="btn btn-primary" value="Add">
+    </div>
+  </div>
+
+  <div class="card" ondragover="event.preventDefault();"  @ondrop='@(()=> OnCardDrop("doing"))' style="width: 18rem;">
+    <img src="Assets/progress.jpg" class="card-img-top" style="height: 10rem;">    
+    <div class="card-body">
+      <h5 class="card-title">in progress</h5>
+      <ul class="list-group list-group-flush">
+        @if (doing.Count != 0)
+        {
+            @foreach (var item in doing)
+            {
+                @item
+            }
+        }
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" ondragover="event.preventDefault();"  @ondrop='@(()=> OnCardDrop("done"))' style="width: 18rem;">
+    <img src="Assets/done.jpg" class="card-img-top" style="height: 10rem;">   
+    <div class="card-body">
+      <h5 class="card-title">done</h5>
+      <ul class="list-group list-group-flush">
+        @if (done.Count != 0)
+        {
+            @foreach (var item in done)
+            {
+                @item
+            }
+        }
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<h1 class="h3 mb-3 fw-normal">Description: <br> @pDesc</h1>
+<input type="button" @onclick="(async ()=> await Save(pName))" class="btn btn-primary" value="Save">
+
+@code{
+    [Parameter] public string pName {get; set;}
+    [Parameter] public string pDesc {get; set;}
+    List<RenderFragment> todo = new List<RenderFragment>();
+    public int todoInd = 0;
+    List<RenderFragment> doing = new List<RenderFragment>();
+    public int doingInd = 0;
+    List<RenderFragment> done = new List<RenderFragment>();
+    public CardItem draggedCard {get; set;}
+    public int doneInd = 0;
+    public string origin;
+    public RenderFragment draggedElem {get; set;}
+    public int newInd;
+    string newBg;
+    List<CardModel> data = new List<CardModel>();
+
+     protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    async Task Load(){
+
+        if (await localStorage.ContainKeyAsync(pName))
+        {
+            string json= await localStorage.GetItemAsStringAsync(pName);
+            data = JsonSerializer.Deserialize<List<CardModel>>(json);
+            List<CardModel> a = new List<CardModel>(data);
+            foreach (var item in a)
+            {
+                if(item.hidden != "d-none")
+                {
+                    if (item.content == null)
+                    {
+                        AddCard(item.bgType, item.index, item.origin, item.content, "d-none", item, true);
+                    }
+                    else
+                    
+                        AddCard(item.bgType, item.index, item.origin, item.content, "", null,true);
+                    }
+                }   
+            }
+        }
+
+    async Task Save(string name){
+        string json = JsonSerializer.Serialize(data);
+
+        List<String>? proj = new List<string>();
+        if (await localStorage.ContainKeyAsync("projects"))
+        {
+            proj = await localStorage.GetItemAsync<List<string>>("projects");   
+        }
+
+        if (!proj.Contains(pName))
+        {
+            proj.Add(pName);    
+            await localStorage.SetItemAsync<List<string>>("projects",proj);
+        }
+        await localStorage.RemoveItemAsync(pName);
+        await localStorage.SetItemAsStringAsync(pName, json);
+    }
+
+    void AddCard(string bg, int index, string origi, string contenet = null, string hidden = "", CardModel item = null, bool loading = false, string oldO = "", int oldI = 10)
+    {
+        RenderFragment card =  CreateCard(bg, index, origi, contenet, hidden);
+        CardModel a = new CardModel();
+        a.SetVals(bg, origi, contenet, index, hidden);
+
+        if(!loading)
+        {
+            if(data.Find(x => x.origin == oldO && x.index == oldI) == null )
+            {
+                data.Add(a);
+            }
+            else
+            {
+                if(data.Find(x => x.origin == oldO && x.index == oldI) != null){
+                    data.Find(x => x.origin == oldO && x.index == oldI).SetVals(bg, origi, contenet, index);
+                }
+                else{
+                    data.Find(x => x.origin == origi && x.index == index).SetVals(bg, origi, contenet, index);
+                }
+            }
+        }
+        switch (origi)
+        {
+            case "todo":
+            todo.Add(card);
+                todoInd++;
+                break;
+                case "doing":
+                doing.Add(card);
+                doingInd++;
+                break;
+                case "done":
+                done.Add(card);
+                doneInd++;
+                break;
+        }
+    }  
+
+    public void UpdateCardmodel(string ori, int ina, string newText, string hid = ""){
+        data.Find(x => x.origin == ori && x.index == ina).content = newText;    
+        data.Find(x => x.origin == ori && x.index == ina).hidden = hid;
+    }
+
+    void OnCardDrop(string type){
+        string newOrigin = "";
+        switch (draggedCard.origin)
+        {
+            case "todo":
+                draggedCard.owner.RemoveAt(draggedCard.refer);
+                todoInd--;
+                break;
+            case "doing":
+                draggedCard.owner.RemoveAt(draggedCard.refer);
+                doingInd--;
+                break;
+            case "done":
+                draggedCard.owner.RemoveAt(draggedCard.refer);
+                doneInd--;
+                break;
+        }
+
+        string oldo = draggedCard.origin;
+        int oldI = draggedCard.refer;
+
+        switch (type)
+        {
+            case "todo":
+                newOrigin = "todo";
+                newInd = todoInd;
+                newBg = "bg-danger";
+                AddCard(newBg, newInd,newOrigin, draggedCard.content, "", null, false, oldo, oldI);
+                break;
+            case "doing":
+                newOrigin = "doing";
+                newInd = doingInd;
+                newBg = "bg-primary";
+                AddCard(newBg, newInd, newOrigin, draggedCard.content, "", null, false, oldo, oldI);
+                break;
+            case "done":
+                newOrigin = "done";
+                newInd = doneInd;
+                newBg = "bg-success";
+                AddCard(newBg, newInd, newOrigin, draggedCard.content, "", null, false, oldo, oldI);
+                break;
+        }
+    }
+
+    public void SetDraggedElem(RenderFragment elem, CardItem item){
+        draggedElem = elem;
+        draggedCard = item;
+    }
+
+    RenderFragment CreateCard(string bgType, int refer, string origin, string content = null, string hidden = "") => builder =>{
+
+        builder.OpenComponent(0,typeof(CardItem));
+        builder.AddAttribute(1,"bgType",bgType);
+        switch (origin)
+        {
+            case "todo":
+                builder.AddAttribute(2,"owner",todo);
+                break;
+            case "doing":
+                builder.AddAttribute(2,"owner",doing);
+                break;
+            case "done":
+                builder.AddAttribute(2,"owner",done);
+                break;
+        }
+        
+        builder.AddAttribute(3,"refer",refer);
+        builder.AddAttribute(4,"workplace",this);
+        builder.AddAttribute(5,"origin",origin);
+        if (content != null)
+        {
+            builder.AddAttribute(6,"content", content);
+        }
+        builder.AddAttribute(7,"hidden", hidden);
+        builder.CloseComponent();
+    };
+}

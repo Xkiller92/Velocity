@@ -1,0 +1,53 @@
+﻿@inject HttpClient Http
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">Projects</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        @foreach (var item in projects)
+        {
+           <div class="nav-item px-3">
+                <NavLink class="nav-link d-grid gap-2">
+                    @item
+                </NavLink>
+            </div>
+        }
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+    List<RenderFragment> projects = new List<RenderFragment>();
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {  
+        List<string>? proj = new List<string>();
+        if (await localStorage.ContainKeyAsync("projects"))
+        {
+            proj = await localStorage.GetItemAsync<List<string>?>("projects");
+        }
+
+        foreach(var item in proj){
+            projects.Add(CreateProject(item));
+        }
+    }
+
+    RenderFragment CreateProject(string name) => builder =>{
+         builder.OpenComponent(0,typeof(ProjectLink));
+         builder.AddAttribute(0,"name", name);
+         builder.CloseComponent();
+    };
+}

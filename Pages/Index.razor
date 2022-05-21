@@ -1,0 +1,32 @@
+﻿@page "/"
+@inject NavigationManager NavigationManager
+
+<PageTitle>Velocity</PageTitle>
+
+<main class="form-signin">
+  <form>
+    <h1 class="h3 mb-3 fw-normal">Add project</h1>
+
+    <div class="form-floating mb-3">
+      <input @bind-value="name" type="text" class="form-control" id="floatingInput" placeholder="Name">
+      <label for="floatingInput">Name</label>
+    </div>
+    <div class="form-floating mb-3">
+      <input @bind-value="desc" type="text" class="form-control" id="floatingPassword" placeholder="Discription">
+      <label for="floatingPassword">Description(optional)</label>
+    </div>
+
+    <button class="w-100 btn btn-lg btn-primary mb-3" @onclick="MakeProject" >Make project</button>
+    <p class="mt-5 mb-3 text-muted"><link href=""></p>
+    <p class="mt-5 mb-3 text-muted"><link href=""></p>
+  </form>
+</main>
+
+@code{
+    string name = "";
+    string desc = "";
+    void MakeProject(){
+        NavigationManager.NavigateTo($"Workplace/{name}/{desc}");
+    }
+}
+

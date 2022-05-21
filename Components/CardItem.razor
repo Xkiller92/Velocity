@@ -1,0 +1,42 @@
+<li class="list-group-item text-wrap @hidden" @onmousedown="Delete" @ondragstart="@(()=> Relocate())" draggable="true">
+    <div class="text-wrap list-group-item">
+        <textarea @bind="content" class="form-control @bgType" placeholder="Add task" id="floatingTextarea">
+        </textarea>
+    </div>
+</li>
+
+@code{
+    [Parameter] public string bgType {get; set;}
+    [Parameter] public List<RenderFragment> owner {get; set;}
+    [Parameter] public string origin { get; set; }
+    [Parameter] public int refer {get; set;}
+    [Parameter] public Workplace workplace {get; set;}
+    [Parameter] public string hidden {get; set;}
+    [Parameter] public string content {
+        get{
+            return Content;
+        }
+        set{
+            Content = value;
+            workplace.UpdateCardmodel(origin, refer, Content, hidden);
+        }
+    }
+    private string Content;
+    
+
+    void Relocate(){
+        RenderFragment a = owner.ElementAt(refer);
+        workplace.draggedElem = a;
+        workplace.draggedCard = this;
+    }
+
+    void Delete(MouseEventArgs e){
+        if(e.Button == 1){
+            hidden = "d-none"; 
+        }
+    }
+    
+    void some(){
+        
+    }
+}

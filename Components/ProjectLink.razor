@@ -1,0 +1,16 @@
+@inject NavigationManager NavigationManager
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
+
+        <button class="btn btn-outline-success" @onclick="Init">@name</button>
+
+ 
+
+
+@code{
+    [Parameter] public string name {get; set;}
+
+    void Init(){
+        NavigationManager.NavigateTo($"Workplace/{name}/", true);
+    }
+}
